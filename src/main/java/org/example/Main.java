@@ -28,6 +28,7 @@ public class Main {
 
     private static void handleClient(Socket socket) throws IOException {
         try (
+                socket; //
                 final OutputStream out = socket.getOutputStream();
                 final InputStream in = socket.getInputStream();
         ) {
