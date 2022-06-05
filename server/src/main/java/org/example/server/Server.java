@@ -1,4 +1,4 @@
-package org.example;
+package org.example.server;
 
 import com.google.common.primitives.Bytes;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+
 @Setter
 public class Server {
     public static final byte[] CRLFCRLF = {'\r', '\n', '\r', '\n'};
