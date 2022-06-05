@@ -16,6 +16,8 @@ import java.time.Instant;
 @Setter
 public class Server {
     public static final byte[] CRLFCRLF = {'\r', '\n', '\r', '\n'};
+
+    public static final byte[] CRLF = {'\r', '\n'};
     private int soTimeout = 30 * 1000;
     private  int readTimeout = 60 * 1000;
     private  int bufferSize = 4096;
@@ -50,8 +52,8 @@ public class Server {
             out.write("Enter command\n".getBytes(StandardCharsets.UTF_8));
 
             //внутренний цикл
-            final String message = readMessage(in);
-            System.out.println("message = " + message);
+            final Request request = readRequest(in);
+            System.out.println("Request" + request);
             final String response =
                     "HTTP/1.1 200 OK\r\n"+
                             "Connection: close \r\n" +
@@ -60,7 +62,7 @@ public class Server {
             out.write(response.getBytes(StandardCharsets.UTF_8));
         }
     }
-    private String readMessage(final InputStream in) throws IOException, BadRequestException {
+    private Request readRequest(final InputStream in) throws IOException, BadRequestException {
         final byte[] buffer = new byte[bufferSize];
         int offset = 0;
         int length = buffer.length;
@@ -86,7 +88,21 @@ public class Server {
                 throw new BadRequestException("CRLFCRLF not gound");
             }
         }
-        final String message = new String(buffer, 0, buffer.length - length, StandardCharsets.UTF_8).trim();
-        return message;
+        final Request request = new Request();
+        final int requestLineEndIndex = Bytes.indexOf(buffer, CRLF);
+        if (requestLineEndIndex==-1){
+            throw new BadRequestException ("Request Line Not Found");
+        }
+        final String requestLine = new String(buffer, 0, requestLineEndIndex, StandardCharsets.UTF_8);
+        System.out.println("requestLine = " + requestLine);
+        parseRequestLine (requestLine);
+        return request;
+    }
+
+    private void parseRequestLine(String requestLine) {
+        final String[] parts = requestLine.split(" ");
+        System.out.println("method:" + parts [0]);
+        System.out.println("path:" + parts [1]);
+        System.out.println("version:" + parts[2]);
     }
 }
