@@ -23,7 +23,7 @@ public class Server {
 
     public void start(){
         try (
-                ServerSocket serverSocket = new ServerSocket(port)
+               final ServerSocket serverSocket = new ServerSocket(port)
         ) {
             while (true) {
                 try {
