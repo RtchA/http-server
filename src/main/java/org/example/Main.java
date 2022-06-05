@@ -3,6 +3,7 @@ package org.example;
 
 import com.google.common.primitives.Bytes;
 import org.example.exception.BadRequestException;
+import org.example.exception.DeadlineExceedException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 public class Main {
     public static void main(String[] args) {
@@ -31,6 +33,8 @@ public class Main {
     }
 
     private static void handleClient(Socket socket) throws IOException {
+        socket.setSoTimeout(30*1000);
+
         try (
                 socket; //
                 final OutputStream out = socket.getOutputStream();
@@ -48,28 +52,18 @@ public class Main {
                     "Content-Lenght: 2\r\n" +
                     "OK";
         out.write(response.getBytes(StandardCharsets.UTF_8));
-
-//            switch (message){
-//                case "time": //if (message.equals ("time"){...}
-//                    final Instant now = Instant.now();
-//                    out.write(now.toString().getBytes(StandardCharsets.UTF_8));
-//                    break;
-//                case "shutdown": // else if (message.equals ("shutdown"){...}
-//                    out.write("Ok, shutdown server".getBytes(StandardCharsets.UTF_8));
-//                    System.exit(0); //danger
-//                    break;
-//                default: // else {...}
-//                    out.write("Unkown command\n".getBytes(StandardCharsets.UTF_8));
             }
         }
-
-
     private static String readMessage(final InputStream in) throws IOException, BadRequestException {
         final byte [] CRLFCRLF= {'\r', '\n', '\r', '\n'};
         final byte[] buffer = new byte[4096];
         int offset = 0;
         int length = buffer.length;
+        final Instant deadline = Instant.now().plus(60, ChronoUnit.SECONDS);
         while (true) {
+            if (Instant.now().isAfter(deadline)){
+                throw new DeadlineExceedException();
+            }
            final int read = in.read(buffer, offset, length);
            offset+=read;
            length=buffer.length- offset;
@@ -80,16 +74,11 @@ public class Main {
            if (headersEndIndex != -1){
                break;
            }
-           if (read==0||length==0){
-               throw new BadRequestException("CRLFCRLF not gound");
-           }
-            final byte lastByte = buffer[offset -1];
-           if (lastByte == '\n'){
-//                        final int read = in.read(buffer); // read- сколько байт было прочитано
-//                        String message = new String(buffer, 0, read, StandardCharsets.UTF_8);
-//                        System.out.println("message = " + message);
-//                        if (message.endsWith("\n")) {
-                break;
+           if (read==-1){
+               throw new BadRequestException("CRLFCRLF not gound, no more data");
+            }
+            if (length==0){
+                throw new BadRequestException("CRLFCRLF not gound");
             }
             }
         final String message = new String(buffer, 0, buffer.length - length, StandardCharsets.UTF_8).trim();
